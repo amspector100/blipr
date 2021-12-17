@@ -107,3 +107,56 @@ test_that('hierarchical_groups calculates peps and groups correctly', {
 
 })
 
+test_that('susie_groups calculates peps and groups correctly', {
+  # Fake susie alphas, L = 3, p = 5
+  alphas <- rbind(
+    c(0.89, 0.07, 0.04, 0.0, 0.0),
+    c(0.05, 0.25, 0.02, 0.03, 0.65),
+    c(0.85, 0.01, 0.01, 0.01, 0.12),
+    c(0.01, 0.01, 0.01, 0.01, 0.96)
+  )
+
+  # Create groups
+  cand_groups <- susie_groups(
+    alphas=alphas, 
+    X=NULL,
+    q=0.1,
+    max_size=5, 
+    max_pep=1,
+    prenarrow=FALSE
+  )
+  check_unique(cand_groups)
+  # Check existence of several groups
+  groups = lapply(cand_groups, function(x) x$group)
+  expected_groups <- list(
+    c(1), c(2), c(3), c(4), c(5), c(1,2), c(2,5), c(1,5)
+  )
+  for (g in expected_groups) {
+    testthat::expect_true(
+      g_in_groups(groups, g)
+    )
+  }
+
+
+  #Check that max_peps, max_size works
+  max_size = 4
+  set.seed(1111)
+  for (max_pep in c(0.2, 0.4, 0.6, 0.8, 1)) {
+    q <- runif(1)
+    cand_groups <- susie_groups(
+      alphas=alphas, X=NULL, q=q, max_size=max_size, max_pep=max_pep
+    )
+    max_pep_obs = max(sapply(cand_groups, function(x) x$pep))
+    testthat::expect_true(
+      max_pep_obs < max_pep,
+    )
+    max_size_obs = max(sapply(cand_groups, function(x) length(x$group)))
+    testthat::expect_true(
+      max_size_obs <= max_size,
+    )
+    # Check for duplicates for good measure
+    check_unique(cand_groups)
+  }
+
+})
+

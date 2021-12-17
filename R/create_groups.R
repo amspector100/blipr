@@ -1,6 +1,9 @@
 #' Calculates all sequential candidate groups below max_size.
 #'@param inclusions (N,p)-shaped matrix of posterior samples
 #'where a nonzero value indicates the presence of a signal.
+#'@param susie_alphas As an alternative to posterior samples,
+#'users may specify an L x p matrix of alphas from a SuSiE object.
+#'However, calling ``susie_groups`` is recommended instead.
 #'@param q The nominal level at which to control the error rate
 #' (optional)
 #'@param max_pep The maximum posterior error probability
@@ -11,33 +14,65 @@
 #'
 #'@export
 sequential_groups <- function(
-  inclusions,
+  inclusions=NULL,
+  susie_alphas=NULL,
   q=0,
   max_pep=1,
   max_size=25,
   prenarrow=TRUE
 ) {
   # preprocessing
-  inclusions <- inclusions != 0
-  N <- dim(inclusions)[1]
-  p <- dim(inclusions)[2]
-  max_size <- min(max_size, p)
-  # Precompute cumulative sums for speed
-  cum_incs = cbind(
-    matrix(0, N, 1),
-    t(apply(inclusions, 1, cumsum))
-  )
+  if (! is.null(inclusions)) {
+    inclusions <- inclusions != 0
+    N <- dim(inclusions)[1]
+    p <- dim(inclusions)[2]
+    max_size <- min(max_size, p)
+    # Precompute cumulative sums for speed
+    cum_incs = cbind(
+      matrix(0, N, 1),
+      t(apply(inclusions, 1, cumsum))
+    )
 
-  # Compute successive groups of size m
-  all_peps <- list()
-  for (m in 1:max_size) {
-    cum_diffs <- cum_incs[, (m+1):(p+1)] - cum_incs[, 1:(p-m+1)]
-    if (m == p) {
+    # Compute successive groups of size m
+    all_peps <- list()
+    for (m in 1:max_size) {
+      cum_diffs <- cum_incs[, (m+1):(p+1)] - cum_incs[, 1:(p-m+1)]
+      if (m == p) {
         all_peps[[m]] <- mean(cum_diffs == 0)
       } else {
         all_peps[[m]] <- colMeans(cum_diffs == 0)
       }
+    }
+  } else if (! is.null(susie_alphas)) {
+    # preprocessing
+    L <- dim(susie_alphas)[1]
+    if (L < 2) {
+      stop("When L< 2, BLiP recovers the original Susie procedure.")
+    }
+    p <- dim(susie_alphas)[2]
+    max_size <- min(max_size, p)
+    # Precompute cumulative sums for speed
+    cum_alphas = cbind(
+      matrix(0, L, 1),
+      t(apply(susie_alphas, 1, cumsum))
+    )
+    # Compute successive groups of size m
+    all_peps <- list()
+    for (m in 1:max_size) {
+      log_cum_diffs <- log(
+        1 - (cum_alphas[, (m+1):(p+1)] - cum_alphas[, 1:(p-m+1)])
+      )
+      if (m == p) {
+        peps <- exp(sum(log_cum_diffs))
+      } else {
+        peps <- exp(colSums(log_cum_diffs))
+      }
+      all_peps[[m]] <- peps
+    }
+  } else {
+    stop("One of inclusions or susie_alphas must be provided")
   }
+
 
   # each index is the first (smallest) variable in the group
   # which has size m
@@ -117,9 +152,9 @@ dist_matrix_to_groups <- function(dist_matrix) {
     for (k in 1:p) {
       # Turn the hclust style vector specifyer into a list of the group indices
       new_groups <- lapply(
-        unique(all_groupings[,k]), 
+        unique(all_groupings[,k]),
         function(j) {which(all_groupings[,k] == j)}
-      ) 
+      )
       groups <- c(groups, new_groups)
     }
   }
@@ -193,9 +228,83 @@ hierarchical_groups <- function(
       pep = 1 - mean(inclusions[,group])
     }
     if (pep < max_pep) {
-      cand_groups[[ncg]] <- list(
+      cand_groups[[ncg]] = list(
         pep=pep,
         group=group
+      )
+      ncg <- ncg + 1
+    }
+  }
+  return(cand_groups)
+}
+
+#' Calculates groups from SuSiE
+#'@param alphas An L x p matrix of alphas from a SuSiE object.
+#'@param X the N x p design matrix. If not NULL, will also add
+#'hierarchical groups based on a correlation cluster of X.
+#'@param q The nominal level at which to control the error rate
+#' (optional)
+#'@param max_pep The maximum posterior error probability
+#' (PEP) allowed in a candidate group. Default is 1.
+#'@param max_size maximum allowable size for each group.
+#'@param prenarrow If true, prenarrows the candidate groups
+#' as described in the paper. Defaults to TRUE.
+#'
+#' @export
+susie_groups <- function(
+  alphas,
+  X,
+  q,
+  max_pep=1,
+  max_size=25,
+  prenarrow=TRUE
+) {
+  L <- dim(alphas)[1]
+  p <- dim(alphas)[2]
+  # Start with sequential groups
+  cand_groups <- sequential_groups(
+    susie_alphas=alphas,
+    q=q,
+    max_pep=max_pep,
+    max_size=max_size,
+    prenarrow=prenarrow
+  )
+  # Add hierarchical groups
+  if (!is.null(X)) {
+    dist_matrix <- as.dist(1 - abs(stats::cor(X)))
+    groups_to_add <- dist_matrix_to_groups(dist_matrix)
+  } else {
+    groups_to_add <- list()
+  }
+  # Add groups considered by susie
+  nga <- length(groups_to_add) + 1
+  for (j in 1:L) {
+   inds <- order(-1*alphas[j,])
+   k <- min(which(cumsum(alphas[j,inds]) >= 1 - q))
+   groups_to_add[[nga]] <- inds[1:k]
+   nga <- nga + 1
+  }
+
+  # Add to cand_groups
+  groups_to_add <- unique(groups_to_add)
+  ncg <- length(cand_groups) + 1
+  for (g in groups_to_add) {
+    # Check max size constraint
+    if (length(g) > max_size) {next}
+    # Check if this is already included as a sequential group
+    if (max(g) - min(g) == length(g) - 1) {next}
+    # Calculate pep
+    if (length(g) > 1) {
+      iter_peps <- 1 - rowSums(alphas[,g])
+    } else {
+      iter_peps <- 1 - alphas[,g]
+    }
+    min_pep <- 1e-10 # for numerical stability
+    log_peps <- ifelse(iter_peps < min_pep, log(min_pep), log(iter_peps))
+    pep <- exp(sum(log_peps))
+    if (pep < max_pep) {
+      cand_groups[[ncg]] <- list(
+        pep=pep, group=g
       )
       ncg <- ncg + 1
     }
