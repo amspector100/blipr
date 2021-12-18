@@ -1,6 +1,6 @@
 default_solver <- function() {
 	solvers <- CVXR::installed_solvers()
-	if ('GUROBI' %in% solvers) { return('GUROBI') } 
+	if ('GUROBI' %in% solvers) { return('GUROBI') }
 	if ('CBC' %in% solvers) {return('CBC')}
 	warning("Using ECOS solver, which will be slightly slower. Consider installing CBC.")
 	return("ECOS")
@@ -23,7 +23,7 @@ ERROR_OPTIONS <- c("fdr", "local_fdr", "fwer", "pfer")
 #' or 'log_inverse_size'.
 #' @param verbose If TRUE, gives occasional progress reports.
 #' @param max_iters Maximum number of binary-search iterations for FWER when.
-#' @param search_method For FWER control, how to find the optimal parameter for 
+#' @param search_method For FWER control, how to find the optimal parameter for
 #' the LP. Either 'binary' (defalt) or 'none'.
 #' @param deterministic Whether or not BLiP should return a deterministic solution.
 #' Randomized solutions will have (very slightly) more power. Defaults to TRUE.
@@ -96,12 +96,12 @@ BLiP <- function(
 		weights <- sapply(cand_groups, weight_fn)
 	}
 
-	# Perturb to avoid degeneracy 
+	# Perturb to avoid degeneracy
 	if (perturb) {
 		weights <- weights * (1 + 0.001 * stats::runif(ngroups))
 	}
 
-	# Extract peps 
+	# Extract peps
 	peps <- sapply(cand_groups, function(x) x$pep)
 
 	# Constraints to ensure selected groups are disjoint
@@ -127,7 +127,7 @@ BLiP <- function(
 	constraints <- list(
 		x >= 0,
 		x <= 1,
-		t(A) %*% x <= b 
+		t(A) %*% x <= b
 	)
 	if (error %in% c("pfer", "fwer")) {
 		CVXR::value(v_param) <- q
@@ -159,7 +159,7 @@ BLiP <- function(
 		v_lower <- 0
 		for (niter in 1:max_iters) {
 			# Set current value
-			v <- (v_upper + v_lower) / 2 
+			v <- (v_upper + v_lower) / 2
 			CVXR::value(v_param) <- v
 			# Solve
 			result <- CVXR::solve(
@@ -174,7 +174,7 @@ BLiP <- function(
 				if (length(group) == 1) {
 					false_disc <- false_disc | inclusions[,group] == 0
 				} else {
-					false_disc <- false_disc | apply(inclusions[,group] == 0, 1, all)					
+					false_disc <- false_disc | apply(inclusions[,group] == 0, 1, all)
 				}
 			}
 			fwer <- mean(false_disc)
@@ -254,8 +254,8 @@ binarize_selections <- function(
 	nrel <- length(Reduce(union, lapply(cand_groups, function(x) x$group)))
 	# disjointness constraints
 	A <- matrix(0, ngroups, nrel)
-	for (gj in 1:length(cand_groups)) {
-		for (loc in cand_groups[[gj]]$blip_group) {
+	for (gj in 1:ngroups) {
+		for (loc in nontriv_cand_groups[[gj]]$blip_group) {
 			A[gj, loc] = 1
 		}
 	}
@@ -354,11 +354,11 @@ binarize_selections <- function(
 					# Eliminate groups mutually exclusive with the one we just selected
 					group_features <- which(A[selected_group,1:nrel] == 1)
 					if (length(group_features) == 1) {
-						new_elim_groups = which(A[,group_features] != 0)
+						new_elim_groups <- which(A[,group_features] != 0)
 					} else {
-						new_elim_groups <- which(colSums(A[,group_features]) != 0)
+						new_elim_groups <- which(rowSums(A[,group_features]) != 0)
 					}
-				eliminated_groups[new_elim_groups] = T
+					eliminated_groups[new_elim_groups] = T
 				}
         	}
 		}
