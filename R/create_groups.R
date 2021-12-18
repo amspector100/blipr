@@ -116,6 +116,13 @@ sequential_groups <- function(
   return(cand_groups)
 }
 
+#' Eliminate cand_groups with pep < max_pep
+prefilter <- function(cand_groups, max_pep) {
+  return(
+    cand_groups[sapply(cand_groups, function(x) x$pep < max_pep)]
+  )
+}
+
 #' After prefiltering groups, some features/locations
 #' may not appear in any candidate groups. When this happens,
 #' this function reindexes the locations to improve efficiency.
