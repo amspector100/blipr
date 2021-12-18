@@ -203,7 +203,7 @@ hierarchical_groups <- function(
   # Estimate cov matrix from inclusions/X
   if (is.null(dist_matrix)) {
     if (! is.null(X)) {
-      dist_matrix <- as.dist(1 - abs(stats::cor(X)))
+      dist_matrix <- stats::as.dist(1 - abs(stats::cor(X)))
     } else {
       # Ensure standard deviation is not zero for any cols
       nvals <- apply(inclusions, 2, function(x) length(unique(x)))
@@ -213,7 +213,7 @@ hierarchical_groups <- function(
         precorr <- inclusions
       }
       # negative correlations = super close together
-      dist_matrix <- as.dist(1 + stats::cor(precorr))
+      dist_matrix <- stats::as.dist(1 + stats::cor(precorr))
     }
   }
   # Initialize output, create groups
@@ -278,7 +278,7 @@ susie_groups <- function(
   )
   # Add hierarchical groups
   if (!is.null(X)) {
-    dist_matrix <- as.dist(1 - abs(stats::cor(X)))
+    dist_matrix <- stats::as.dist(1 - abs(stats::cor(X)))
     groups_to_add <- dist_matrix_to_groups(dist_matrix)
   } else {
     groups_to_add <- list()

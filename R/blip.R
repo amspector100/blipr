@@ -32,6 +32,8 @@ ERROR_OPTIONS <- c("fdr", "local_fdr", "fwer", "pfer")
 #' and ensuring all selected groups are disjoint.
 #'
 #' @examples
+#' cand_groups <- list(list(group=c(1), pep=0.1), list(group=c(2), pep=0.5), list(group=c(1,2), pep=0.01))
+#' detections <- blipr::BLiP(cand_groups=cand_groups, q=0.1, error='fdr')
 #' @export
 BLiP <- function(
 	inclusions=NULL,
@@ -39,10 +41,10 @@ BLiP <- function(
 	weight_fn='inverse_size',
 	error='fdr',
 	q=0.1,
-	max_pep=0.5,
-	deterministic=TRUE,
-	verbose=TRUE,
-	perturb=TRUE,
+	max_pep=1,
+	deterministic=T,
+	verbose=F,
+	perturb=T,
 	max_iters=100,
 	search_method='binary',
 	solver=NULL,
@@ -51,21 +53,22 @@ BLiP <- function(
 	# Preprocessing
 	error <- tolower(error)
 	if (! error %in% ERROR_OPTIONS) {
-		stop(paste("error (", error, ") must be one of", paste(ERROR_OPTIONS, collapse=', '))
+		stop(paste("error (", error, ") must be one of", paste(ERROR_OPTIONS, collapse=', ')))
 	}
 	if (is.null(cand_groups) & is.null(inclusions)) {
 		stop("At least one of cand_groups and inclusions must be provided.")
 	}
 	if (error %in% c("fwer", "pfer", "local_fdr")) {max_pep <- min(max_pep, q)}
 	if (is.null(solver)) {solver <- default_solver()}
+	logLevel <- ifelse(verbose, 1, 0)
 
 	# Create cand_groups if necessary
 	if (is.null(cand_groups)) {
 		seq_groups <- sequential_groups(
-			inclusions=inclusions, q=q, max_pep=max_pep, prenarrow=TRUE
+			inclusions=inclusions, q=q, max_pep=max_pep, prenarrow=T
 		)
 		hier_groups <- hierarchical_groups(
-			inclusions=inclusions, max_pep=max_pep, filter_sequential=TRUE
+			inclusions=inclusions, max_pep=max_pep, filter_sequential=T
 		)
 		cand_groups <- c(seq_groups, hier_groups)
 	}
@@ -74,25 +77,28 @@ BLiP <- function(
 	cand_groups <- prefilter(cand_groups, max_pep=max_pep)
 	if (length(cand_groups) == 0) {return(list())} # edge case with no rejections
 	cand_groups <- elim_redundant_features(cand_groups)
-	nrel <- length(Reduce(union, lapply(cand_groups, function(x) x$group))
+	nrel <- length(Reduce(union, lapply(cand_groups, function(x) x$group)))
 
 	# Weights for each candidate group
 	ngroups <- length(cand_groups)
-	if (weight_fn == 'prespecified') {
-		weights <- sapply(cand_groups, function(x) x$weight)
+	if (methods::is(weight_fn, 'character')) {
+		if (weight_fn == 'prespecified') {
+			weights <- sapply(cand_groups, function(x) x$weight)
+		} else {
+			if (weight_fn == 'inverse_size') {
+				weight_fn <- inverse_size
+			} else if (weight_fn == 'log_inverse_size') {
+				weight_fn <- log_inverse_size
+			}
+			weights <- sapply(cand_groups, weight_fn)
+		}
 	} else {
-		if (weight_fn == 'inverse_size') {
-			weight_fn <- inverse_size
-		}
-		if (weight_fn == 'log_inverse_size') {
-			weight_fn <- log_inverse_size
-		}
 		weights <- sapply(cand_groups, weight_fn)
 	}
 
 	# Perturb to avoid degeneracy 
 	if (perturb) {
-		weights <- weights * (1 + 0.001 * runif(ngroups))
+		weights <- weights * (1 + 0.001 * stats::runif(ngroups))
 	}
 
 	# Extract peps 
@@ -103,7 +109,7 @@ BLiP <- function(
 		cat("BLiP problem has", ngroups, "groups in contention, with", nrel, "active features/locations")
 	}
 	A <- matrix(0, ngroups, nrel)
-	for (gj in length(cand_groups)) {
+	for (gj in 1:length(cand_groups)) {
 		for (loc in cand_groups[[gj]]$blip_group) {
 			A[gj, loc] = 1
 		}
@@ -117,10 +123,11 @@ BLiP <- function(
 	v_param <- CVXR::Parameter()
 	v_var <- CVXR::Variable(pos=TRUE) # for FDR only
 	objective <- CVXR::Maximize(sum(weights * x * (1 - peps)))
+	b <- rep(1, nrel)
 	constraints <- list(
 		x >= 0,
 		x <= 1,
-		A %*% x <= rep(1, nrel)
+		t(A) %*% x <= b 
 	)
 	if (error %in% c("pfer", "fwer")) {
 		CVXR::value(v_param) <- q
@@ -140,7 +147,9 @@ BLiP <- function(
 		objective=objective, constraints=constraints
 	)
 	if (! binary_search) {
-		result <- CVXR::solve(problem, solver=solver)
+		result <- CVXR::solve(
+			problem, solver=solver, verbose=verbose, logLevel=logLevel
+		)
 		selections <- as.numeric(result$getValue(x))
 	} else {
 		N <- dim(inclusions)[1]
@@ -153,7 +162,9 @@ BLiP <- function(
 			v <- (v_upper + v_lower) / 2 
 			CVXR::value(v_param) <- v
 			# Solve
-			result <- CVXR::solve(problem, solver=solver, warm_start=TRUE)
+			result <- CVXR::solve(
+				problem, solver=solver, warm_start=TRUE, verbose=verbose, logLevel=logLevel
+			)
 			# TODO more clever than this for FWER
 			selections <- round(as.numeric(result$getValue(x)))
 			# Calculate FWER for these selections
@@ -178,13 +189,15 @@ BLiP <- function(
 		}
 		# Solve with v_lower for final solution
 		CVXR::value(v_param) <- v_lower
-		result <- CVXR::solve(problem, solver=solver, warm_start=TRUE)
+		result <- CVXR::solve(
+			problem, solver=solver, warm_start=TRUE, verbose=verbose, logLevel=logLevel
+		)
 		selections <- round(as.numeric(result$getValue(x)))
 	}
 	# Save information
 	for (gj in 1:ngroups) {
-		cand_group[[gj]]$sprob <- selections[gj]
-		cand_group[[gj]]$weight <- weight
+		cand_groups[[gj]]$sprob <- selections[gj]
+		cand_groups[[gj]]$weight <- weights[gj]
 	}
 	if (error == 'fdr') {
 		v_opt <- as.numeric(result$getValue(v_var))
@@ -194,20 +207,22 @@ BLiP <- function(
 
 	return(binarize_selections(
 		cand_groups=cand_groups,
-		p=nrel,
+		q=q,
 		v_opt=v_opt,
 		error=error,
 		deterministic=deterministic
 	))
 }
 
-#' @keyword internal (hmm)
+#' Have to decide if this is internal or exported
 binarize_selections <- function(
 	cand_groups,
+	q,
 	v_opt,
 	error,
 	deterministic,
-	tol=1e-3
+	tol=1e-3,
+	verbose=F
 ) {
 	output <- list()
 	nontriv_cand_groups <- list() # nonintegers
@@ -228,18 +243,18 @@ binarize_selections <- function(
 	ngroups <- length(nontriv_cand_groups)
 	if (ngroups == 0) { return(output) }
 	if (ngroups == 1) {
-		if ((! deterministic) & runif(1) < nontriv_cand_groups[[1]]$sprob) {
+		if ((! deterministic) & stats::runif(1) < nontriv_cand_groups[[1]]$sprob) {
 			output <- c(output, nontriv_cand_groups)
-			return(output)
 		}
+		return(output)
 	}
 
 	# Preprocessing for hard cases (reindex to make the problem smaller)
 	nontriv_cand_groups <- elim_redundant_features(nontriv_cand_groups)
-	nrel <- length(Reduce(union, lapply(cand_groups, function(x) x$group))
+	nrel <- length(Reduce(union, lapply(cand_groups, function(x) x$group)))
 	# disjointness constraints
 	A <- matrix(0, ngroups, nrel)
-	for (gj in length(cand_groups)) {
+	for (gj in 1:length(cand_groups)) {
 		for (loc in cand_groups[[gj]]$blip_group) {
 			A[gj, loc] = 1
 		}
@@ -255,18 +270,24 @@ binarize_selections <- function(
 		constraints <- list(
 			x >= 0,
 			x <= 1,
-			A %*% x <= rep(1, nrel)
+			t(A) %*% x <= rep(1, nrel)
+		)
+		# Helpers for all but local FDR
+		ndisc_output <- length(output)
+		v_output <- ifelse(
+			ndisc_output == 0,
+			0,
+			sum(sapply(output, function(x) x$pep))
 		)
 		if (error %in% c("pfer", "fwer")) {
-			v_new <- v_opt - sum(sapply(output, function(x) x$pep))
+			v_new <- v_opt - v_output
 			constraints <- c(constraints, list(sum(x * peps) <= v_new))
 		}
 		if (error == 'fdr') {
 			v_var <- CVXR::Variable(pos=TRUE)
 			ndisc_output <- length(output)
-			v_output <- sum(sapply(output, function(x) x$pep))
 			constraints <- c(constraints, list(
-				sum(x * peps) <= v_var + v_output,
+				sum(x * peps) <= v_var,
 				sum(x) >= (v_var + v_output) / q - ndisc_output,
 				v_var >= 0
 			))
@@ -275,10 +296,14 @@ binarize_selections <- function(
 		# Note GLPK is good in general, but it has known bugs in
 		# small problems like this one, so we use CBC by default.
 		# See https://github.com/cvxpy/cvxpy/issues/1112
-		if ('CBC' in CVXR::installed_solvers()) {
-			result <- CVXR::solve(problem, solver=solver)
+		problem <- CVXR::Problem(objective=objective, constraints=constraints)
+		if ('CBC' %in% CVXR::installed_solvers()) {
+			logLevel = ifelse(verbose, 1, 0)
+			result <- CVXR::solve(
+				problem, solver='CBC', verbose=verbose, logLevel=logLevel
+			)
 		} else {
-			result <- CVXR::solve(problem)
+			result <- CVXR::solve(problem, verbose=verbose)
 		}
 
 		binarized_probs <- as.numeric(result$getValue(x))
@@ -288,10 +313,10 @@ binarize_selections <- function(
 	} else {
 		# Add selection probs to A
 		sprobs <- sapply(nontriv_cand_groups, function(x) x$sprob)
-		A <- rbind(A, sprobs) # A[p+1,] corresponds to sprobs
+		A <- cbind(A, sprobs) # A[,nrel+1] corresponds to sprobs
 
 		# Sort features in terms of marg. prob of selection
-		marg_probs <- sapply(1:p, function(j) {sum(A[p+1, A[j,] == 1])})
+		marg_probs <- sapply(1:nrel, function(j) {sum(A[A[,j] == 1, nrel+1])})
 		inds <- order(-1*marg_probs)
 
 		# Initialize
@@ -301,37 +326,37 @@ binarize_selections <- function(
 		for (feature in inds) {
 			if (all(eliminated_groups)) { break }
 			# Subset of available groups which contain the feature
-			available.flags <- (A[feature,] == 1) & (! eliminated_groups)
+			available.flags <- (A[,feature] == 1) & (! eliminated_groups)
 			if (sum(available.flags) == 0) {
 				subset <- NULL
 			} else if (sum(available.flags) == 1) {
-				subset <- matrix(A[,available.flags], nrow=p+1, ncol=1)
+				subset <- matrix(A[available.flags,], nrow=1, ncol=nrel+1)
 			} else {
-				subset = A[,available.flags]
+				subset = A[available.flags,]
 			}
 			if (! is.null(subset)) {
 				# Scale up cond probabilities
-				prev_elim = A[, (A[feature,] == 1) & (eliminated_groups)]
+				prev_elim = A[(A[,feature] == 1) & (eliminated_groups),]
 				if (is.null(dim(prev_elim))) {
-					prev_elim <- matrix(prev_elim, nrow=length(prev_elim))
+					prev_elim <- matrix(prev_elim, ncol=length(prev_elim))
 				}
-				scale <- 1 - sum(prev_elim[p+1,])
-				new_probs = subset[p+1,] / scale
+				scale <- 1 - sum(prev_elim[,nrel+1])
+				new_probs = subset[,nrel+1] / scale
 
 				# select nothing with some probability
-				if (runif(1) <= 1 - sum(new_probs)) {
-					eliminated_groups[A[feature,] == 1] = 1
+				if (stats::runif(1) <= 1 - sum(new_probs)) {
+					eliminated_groups[A[,feature] == 1] = 1
 				} else {
 					# Else continue and select one of the groups
-					selected_group <- which(rmultinom(1, 1, new_probs) == 1)
+					selected_group <- which(stats::rmultinom(1, 1, new_probs) == 1)
 					selected_group <- which(available.flags)[selected_group]
 					selected_groups <- c(selected_groups, selected_group)
 					# Eliminate groups mutually exclusive with the one we just selected
-					group_features <- which(A[1:p,selected_group] == 1)
+					group_features <- which(A[selected_group,1:nrel] == 1)
 					if (length(group_features) == 1) {
-						new_elim_groups = which(A[group_features,] != 0)
+						new_elim_groups = which(A[,group_features] != 0)
 					} else {
-						new_elim_groups <- which(colSums(A[group_features,]) != 0)
+						new_elim_groups <- which(colSums(A[,group_features]) != 0)
 					}
 				eliminated_groups[new_elim_groups] = T
 				}
