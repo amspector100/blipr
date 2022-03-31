@@ -6,7 +6,7 @@
 based on dist_matrix.}
 \usage{
 hierarchical_groups(
-  inclusions,
+  samples,
   dist_matrix = NULL,
   X = NULL,
   max_pep = 1,
@@ -15,7 +15,7 @@ hierarchical_groups(
 )
 }
 \arguments{
-\item{inclusions}{(N,p)-shaped array of posterior samples
+\item{samples}{(N,p)-shaped array of posterior samples
 where a nonzero value indicates the presence of a signal.}
 
 \item{dist_matrix}{A distance matrix corresponding to

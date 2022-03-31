@@ -1,5 +1,5 @@
 #' Calculates all sequential candidate groups below max_size.
-#'@param inclusions (N,p)-shaped matrix of posterior samples
+#'@param samples (N,p)-shaped matrix of posterior samples
 #'where a nonzero value indicates the presence of a signal.
 #'@param susie_alphas As an alternative to posterior samples,
 #'users may specify an L x p matrix of alphas from a SuSiE object.
@@ -14,7 +14,7 @@
 #'
 #'@export
 sequential_groups <- function(
-  inclusions=NULL,
+  samples=NULL,
   susie_alphas=NULL,
   q=0,
   max_pep=1,
@@ -22,15 +22,15 @@ sequential_groups <- function(
   prenarrow=TRUE
 ) {
   # preprocessing
-  if (! is.null(inclusions)) {
-    inclusions <- inclusions != 0
-    N <- dim(inclusions)[1]
-    p <- dim(inclusions)[2]
+  if (! is.null(samples)) {
+    samples <- samples != 0
+    N <- dim(samples)[1]
+    p <- dim(samples)[2]
     max_size <- min(max_size, p)
     # Precompute cumulative sums for speed
     cum_incs = cbind(
       matrix(0, N, 1),
-      t(apply(inclusions, 1, cumsum))
+      t(apply(samples, 1, cumsum))
     )
 
     # Compute successive groups of size m
@@ -70,7 +70,7 @@ sequential_groups <- function(
       all_peps[[m]] <- peps
     }
   } else {
-    stop("One of inclusions or susie_alphas must be provided")
+    stop("One of samples or susie_alphas must be provided")
   }
 
 
@@ -170,7 +170,7 @@ dist_matrix_to_groups <- function(dist_matrix) {
 
 #' Creates hierarchically structured candidate groups
 #' based on dist_matrix.
-#' @param inclusions (N,p)-shaped array of posterior samples
+#' @param samples (N,p)-shaped array of posterior samples
 #' where a nonzero value indicates the presence of a signal.
 #' @param dist_matrix A distance matrix corresponding to
 #' distances between locations, used for hierarchical clustering.
@@ -183,7 +183,7 @@ dist_matrix_to_groups <- function(dist_matrix) {
 #' of variables to avoid duplication.
 #' @export
 hierarchical_groups <- function(
-  inclusions,
+  samples,
   dist_matrix=NULL,
   X=NULL,
   max_pep=1,
@@ -191,26 +191,26 @@ hierarchical_groups <- function(
   filter_sequential=FALSE
 ) {
   # Preprocessing
-  N <- dim(inclusions)[1]
-  p <- dim(inclusions)[2]
-  inclusions <- inclusions != 0
+  N <- dim(samples)[1]
+  p <- dim(samples)[2]
+  samples <- samples != 0
   # Trivial cases with zero/one feature
   if (p == 0) {return(list())}
   if (p == 1) {
-    pep <- 1 - mean(inclusions)
+    pep <- 1 - mean(samples)
     return(list(list(pep=pep, group=c(1))))
   }
-  # Estimate cov matrix from inclusions/X
+  # Estimate cov matrix from samples/X
   if (is.null(dist_matrix)) {
     if (! is.null(X)) {
       dist_matrix <- stats::as.dist(1 - abs(stats::cor(X)))
     } else {
       # Ensure standard deviation is not zero for any cols
-      nvals <- apply(inclusions, 2, function(x) length(unique(x)))
+      nvals <- apply(samples, 2, function(x) length(unique(x)))
       if (any(nvals <= 1)) {
-        precorr <- rbind(rep(1, N), rep(0, N), inclusions)
+        precorr <- rbind(rep(1, N), rep(0, N), samples)
       } else {
-        precorr <- inclusions
+        precorr <- samples
       }
       # negative correlations = super close together
       dist_matrix <- stats::as.dist(1 + stats::cor(precorr))
@@ -230,9 +230,9 @@ hierarchical_groups <- function(
     }
     # Calculate PEP
     if (gsize > 1) {
-      pep = 1 - mean(apply(inclusions[,group], 1, any))
+      pep = 1 - mean(apply(samples[,group], 1, any))
     } else {
-      pep = 1 - mean(inclusions[,group])
+      pep = 1 - mean(samples[,group])
     }
     if (pep < max_pep) {
       cand_groups[[ncg]] = list(

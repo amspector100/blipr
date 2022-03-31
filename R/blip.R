@@ -248,13 +248,13 @@ binarize_selections <- function(
 
 	# The easy cases: 0 or 1 non-integer values
 	ngroups <- length(nontriv_cand_groups)
-	if (ngroups == 0) { return(output) }
-	if (ngroups == 1) {
-		if ((! deterministic) & stats::runif(1) < nontriv_cand_groups[[1]]$sprob) {
-			output <- c(output, nontriv_cand_groups)
-		}
-		return(output)
-	}
+	if (ngroups == 0 | ngroups == 1) { return(output) }
+	# if (ngroups == 1) {
+	# 	if ((! deterministic) & stats::runif(1) < nontriv_cand_groups[[1]]$sprob) {
+	# 		output <- c(output, nontriv_cand_groups)
+	# 	}
+	# 	return(output)
+	# }
 
 	# Preprocessing for hard cases (reindex to make the problem smaller)
 	nontriv_cand_groups <- elim_redundant_features(nontriv_cand_groups)
@@ -374,52 +374,90 @@ binarize_selections <- function(
 		inds <- order(-1*marg_probs)
 
 		# Initialize
-		eliminated_groups <- rep(F, ngroups)
-		selected_groups <- c()
-		# Loop through by feature and sample
-		for (feature in inds) {
-			if (all(eliminated_groups)) { break }
-			# Subset of available groups which contain the feature
-			available.flags <- (A[,feature] == 1) & (! eliminated_groups)
-			if (sum(available.flags) == 0) {
-				subset <- NULL
-			} else if (sum(available.flags) == 1) {
-				subset <- matrix(A[available.flags,], nrow=1, ncol=nrel+1)
-			} else {
-				subset = A[available.flags,]
-			}
-			if (! is.null(subset)) {
-				# Scale up cond probabilities
-				prev_elim = A[(A[,feature] == 1) & (eliminated_groups),]
-				if (is.null(dim(prev_elim))) {
-					prev_elim <- matrix(prev_elim, ncol=length(prev_elim))
-				}
-				scale <- 1 - sum(prev_elim[,nrel+1])
-				new_probs = subset[,nrel+1] / scale
+		expected_powers <- rep(0, nsample)
+		all_outputs <- list()
+		for (ii in 1:nsample) {
+		  eliminated_groups <- rep(F, ngroups)
+		  selected_groups <- c()
+		  # Loop through by feature and sample
+		  for (feature in inds) {
+		    if (all(eliminated_groups)) { break }
+		    # Subset of available groups which contain the feature
+		    available.flags <- (A[,feature] == 1) & (! eliminated_groups)
+		    if (sum(available.flags) == 0) {
+		      subset <- NULL
+		    } else if (sum(available.flags) == 1) {
+		      subset <- matrix(A[available.flags,], nrow=1, ncol=nrel+1)
+		    } else {
+		      subset = A[available.flags,]
+		    }
+		    if (! is.null(subset)) {
+		      # Scale up cond probabilities
+		      prev_elim = A[(A[,feature] == 1) & (eliminated_groups),]
+		      if (is.null(dim(prev_elim))) {
+		        prev_elim <- matrix(prev_elim, ncol=length(prev_elim))
+		      }
+		      scale <- 1 - sum(prev_elim[,nrel+1])
+		      new_probs = subset[,nrel+1] / scale
 
-				# select nothing with some probability
-				if (stats::runif(1) <= 1 - sum(new_probs)) {
-					eliminated_groups[A[,feature] == 1] = 1
-				} else {
-					# Else continue and select one of the groups
-					selected_group <- which(stats::rmultinom(1, 1, new_probs) == 1)
-					selected_group <- which(available.flags)[selected_group]
-					selected_groups <- c(selected_groups, selected_group)
-					# Eliminate groups mutually exclusive with the one we just selected
-					group_features <- which(A[selected_group,1:nrel] == 1)
-					if (length(group_features) == 1) {
-						new_elim_groups <- which(A[,group_features] != 0)
-					} else {
-						new_elim_groups <- which(rowSums(A[,group_features]) != 0)
-					}
-					eliminated_groups[new_elim_groups] = T
-				}
-        	}
+		      # select nothing with some probability
+		      if (stats::runif(1) <= 1 - sum(new_probs)) {
+		        eliminated_groups[A[,feature] == 1] = 1
+		      } else {
+		        # Else continue and select one of the groups
+		        selected_group <- which(stats::rmultinom(1, 1, new_probs) == 1)
+		        selected_group <- which(available.flags)[selected_group]
+		        selected_groups <- c(selected_groups, selected_group)
+		        # Eliminate groups mutually exclusive with the one we just selected
+		        group_features <- which(A[selected_group,1:nrel] == 1)
+		        if (length(group_features) == 1) {
+		          new_elim_groups <- which(A[,group_features] != 0)
+		        } else {
+		          new_elim_groups <- which(rowSums(A[,group_features]) != 0)
+		        }
+		        eliminated_groups[new_elim_groups] = T
+		      }
+		    }
+		  }
+		  output_ii <- c(output, nontriv_cand_groups[selected_groups])
+		  # For local FDR, no backtracking required
+		  if (error != "local_fdr" & length(output_ii) > 0) {
+		    haterror <- extract_error(output_ii, error)
+		    output_ii <- output_ii[order(sapply(output_ii, function(x) {x$pep}))]
+		    while (haterror > q) {
+		      if (length(output_ii) == 1) {
+		        output_ii <- c()
+		        break
+		      } else {
+		        output_ii <- output_ii[1:length(output_ii)-1]
+		      }
+		      haterror <- extract_error(output_ii, error)
+		    }
+		  }
+		  # Calculate expected power
+		  expected_powers[ii] <- ifelse(
+		    length(output_ii) > 0,
+		    sum(sapply(output_ii, function(x) {x$pep * x$weight})),
+		    0
+		  )
+		  all_outputs[[ii]] <- output_ii
 		}
-		output <- c(output, nontriv_cand_groups[selected_groups])
+		# Pick output with largest expected power
+		output <- all_outputs[[which.max(expected_powers)]]
 	}
 	return(output)
 
 }
 
-
+#' @keywords internal
+#' This is only for use within binarize_selections.
+extract_error <- function(discoveries, error) {
+  if (length(discoveries) == 0) {
+    return(0)
+  }
+  peps <- sapply(discoveries, function(x) {x$pep})
+  if (error == 'fdr') {return(mean(peps))}
+  # For FWER, whenever this function is called,
+  # we make the PFER approximation.
+  return(sum(peps))
+}

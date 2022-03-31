@@ -5,7 +5,7 @@
 \title{Calculates all sequential candidate groups below max_size.}
 \usage{
 sequential_groups(
-  inclusions = NULL,
+  samples = NULL,
   susie_alphas = NULL,
   q = 0,
   max_pep = 1,
@@ -14,7 +14,7 @@ sequential_groups(
 )
 }
 \arguments{
-\item{inclusions}{(N,p)-shaped matrix of posterior samples
+\item{samples}{(N,p)-shaped matrix of posterior samples
 where a nonzero value indicates the presence of a signal.}
 
 \item{susie_alphas}{As an alternative to posterior samples,
