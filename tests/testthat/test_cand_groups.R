@@ -118,10 +118,10 @@ test_that('susie_groups calculates peps and groups correctly', {
 
   # Create groups
   cand_groups <- susie_groups(
-    alphas=alphas, 
+    alphas=alphas,
     X=NULL,
     q=0.1,
-    max_size=5, 
+    max_size=5,
     max_pep=1,
     prenarrow=FALSE
   )

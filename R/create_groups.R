@@ -160,7 +160,7 @@ dist_matrix_to_groups <- function(dist_matrix) {
       # Turn the hclust style vector specifyer into a list of the group indices
       new_groups <- lapply(
         unique(all_groupings[,k]),
-        function(j) {which(all_groupings[,k] == j)}
+        function(j) {sort(which(all_groupings[,k] == j))}
       )
       groups <- c(groups, new_groups)
     }
@@ -250,7 +250,6 @@ hierarchical_groups <- function(
 #'@param X the N x p design matrix. If not NULL, will also add
 #'hierarchical groups based on a correlation cluster of X.
 #'@param q The nominal level at which to control the error rate
-#' (optional)
 #'@param max_pep The maximum posterior error probability
 #' (PEP) allowed in a candidate group. Default is 1.
 #'@param max_size maximum allowable size for each group.
@@ -288,7 +287,7 @@ susie_groups <- function(
   for (j in 1:L) {
    inds <- order(-1*alphas[j,])
    k <- min(which(cumsum(alphas[j,inds]) >= 1 - q))
-   groups_to_add[[nga]] <- inds[1:k]
+   groups_to_add[[nga]] <- sort(inds[1:k])
    nga <- nga + 1
   }
 

@@ -1,15 +1,14 @@
 Package: blipr
-Title: What the Package Does (One Line, Title Case)
+Title: A Bayesian Linear Program for resolution-adaptive signal detection
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Asher",
+           family = "Spector",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+           email = "amspector100@gmail.com",
+           )
 Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: use_gpl3_license()
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -19,5 +18,7 @@ Imports:
   methods,
   stats
 Suggests: 
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    NPrior,
+    Rglpk
 Config/testthat/edition: 3

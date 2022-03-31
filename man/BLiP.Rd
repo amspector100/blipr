@@ -6,7 +6,7 @@
 detection, e.g. for resolution-adaptive variable selection.}
 \usage{
 BLiP(
-  inclusions = NULL,
+  samples = NULL,
   cand_groups = NULL,
   weight_fn = "inverse_size",
   error = "fdr",
@@ -22,7 +22,7 @@ BLiP(
 )
 }
 \arguments{
-\item{inclusions}{(N,p)-shaped matrix of posterior samples where a nonzero
+\item{samples}{(N,p)-shaped matrix of posterior samples where a nonzero
 value indicates the presence of a signal.}
 
 \item{cand_groups}{A list of lists, where the inner lists must have a
@@ -43,10 +43,16 @@ Randomized solutions will have (very slightly) more power. Defaults to TRUE.}
 
 \item{verbose}{If TRUE, gives occasional progress reports.}
 
+\item{perturb}{If TRUE, adds a tiny (random) perturbation to the weights to ensure
+the existence of a unique optimal solution.}
+
 \item{max_iters}{Maximum number of binary-search iterations for FWER when.}
 
 \item{search_method}{For FWER control, how to find the optimal parameter for
 the LP. Either 'binary' (defalt) or 'none'.}
+
+\item{solver}{The solver to use within CVXR. By default, will use Gurobi, CBC,
+or ECOS (in that order), depending on whether they are installed.}
 }
 \value{
 An object with a "selections" attribute, a subsequence of pep_list

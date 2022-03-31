@@ -12,8 +12,7 @@ susie_groups(alphas, X, q, max_pep = 1, max_size = 25, prenarrow = TRUE)
 \item{X}{the N x p design matrix. If not NULL, will also add
 hierarchical groups based on a correlation cluster of X.}
 
-\item{q}{The nominal level at which to control the error rate
-(optional)}
+\item{q}{The nominal level at which to control the error rate}
 
 \item{max_pep}{The maximum posterior error probability
 (PEP) allowed in a candidate group. Default is 1.}

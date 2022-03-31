@@ -8,10 +8,11 @@ default_solver <- function() {
 
 BINARY_TOL <- 1e-3
 ERROR_OPTIONS <- c("fdr", "local_fdr", "fwer", "pfer")
+WEIGHT_FN_STRS <- c("inverse_size", "log_inverse_size")
 
 #' Runs a Bayesian Linear Program (BliP) for resolution-adaptive signal
 #' detection, e.g. for resolution-adaptive variable selection.
-#' @param inclusions (N,p)-shaped matrix of posterior samples where a nonzero
+#' @param samples (N,p)-shaped matrix of posterior samples where a nonzero
 #' value indicates the presence of a signal.
 #' @param cand_groups A list of lists, where the inner lists must have a
 #' "group" attribute, corresponding to the features in the group
@@ -19,14 +20,18 @@ ERROR_OPTIONS <- c("fdr", "local_fdr", "fwer", "pfer")
 #' @param error Bayesian error rate to control: one of "fwer", "pfer", "fdr", "local_fdr".
 #' @param q The level at which to control the Bayesian FWER/PFER/FDR/local FDR.
 #' @param max_pep Never select any group with a pep greater than max_pep.
+#' @param deterministic Whether or not BLiP should return a deterministic solution.
+#' Randomized solutions will have (very slightly) more power. Defaults to TRUE.
 #' @param weight_fn How to weight discoveries. Can be one of 'inverse_size'
 #' or 'log_inverse_size'.
 #' @param verbose If TRUE, gives occasional progress reports.
+#' @param perturb If TRUE, adds a tiny (random) perturbation to the weights to ensure
+#' the existence of a unique optimal solution.
 #' @param max_iters Maximum number of binary-search iterations for FWER when.
 #' @param search_method For FWER control, how to find the optimal parameter for
 #' the LP. Either 'binary' (defalt) or 'none'.
-#' @param deterministic Whether or not BLiP should return a deterministic solution.
-#' Randomized solutions will have (very slightly) more power. Defaults to TRUE.
+#' @param solver The solver to use within CVXR. By default, will use Gurobi, CBC,
+#' or ECOS (in that order), depending on whether they are installed.
 #' @return An object with a "selections" attribute, a subsequence of pep_list
 #' which maximizes the utility while controlling a Bayesian error rate
 #' and ensuring all selected groups are disjoint.
@@ -36,7 +41,7 @@ ERROR_OPTIONS <- c("fdr", "local_fdr", "fwer", "pfer")
 #' detections <- blipr::BLiP(cand_groups=cand_groups, q=0.1, error='fdr')
 #' @export
 BLiP <- function(
-	inclusions=NULL,
+	samples=NULL,
 	cand_groups=NULL,
 	weight_fn='inverse_size',
 	error='fdr',
@@ -55,8 +60,8 @@ BLiP <- function(
 	if (! error %in% ERROR_OPTIONS) {
 		stop(paste("error (", error, ") must be one of", paste(ERROR_OPTIONS, collapse=', ')))
 	}
-	if (is.null(cand_groups) & is.null(inclusions)) {
-		stop("At least one of cand_groups and inclusions must be provided.")
+	if (is.null(cand_groups) & is.null(samples)) {
+		stop("At least one of cand_groups and samples must be provided.")
 	}
 	if (error %in% c("fwer", "pfer", "local_fdr")) {max_pep <- min(max_pep, q)}
 	if (is.null(solver)) {solver <- default_solver()}
@@ -65,10 +70,10 @@ BLiP <- function(
 	# Create cand_groups if necessary
 	if (is.null(cand_groups)) {
 		seq_groups <- sequential_groups(
-			inclusions=inclusions, q=q, max_pep=max_pep, prenarrow=T
+			samples=samples, q=q, max_pep=max_pep, prenarrow=T
 		)
 		hier_groups <- hierarchical_groups(
-			inclusions=inclusions, max_pep=max_pep, filter_sequential=T
+			samples=samples, max_pep=max_pep, filter_sequential=T
 		)
 		cand_groups <- c(seq_groups, hier_groups)
 	}
@@ -89,6 +94,10 @@ BLiP <- function(
 				weight_fn <- inverse_size
 			} else if (weight_fn == 'log_inverse_size') {
 				weight_fn <- log_inverse_size
+			} else {
+			  stop(
+			    paste("Unrecognized weight_fn (", weight_fn, ") must be one of", paste(WEIGHT_FN_STRS, collapse=', '))
+			  )
 			}
 			weights <- sapply(cand_groups, weight_fn)
 		}
@@ -96,9 +105,10 @@ BLiP <- function(
 		weights <- sapply(cand_groups, weight_fn)
 	}
 
-	# Perturb to avoid degeneracy
+	# Perturb to ensure unique solution
+	orig_weights <- weights
 	if (perturb) {
-		weights <- weights * (1 + 0.001 * stats::runif(ngroups))
+		weights <- weights * (1 + 0.0001 * stats::runif(ngroups))
 	}
 
 	# Extract peps
@@ -116,7 +126,7 @@ BLiP <- function(
 	}
 
 	# Determine if a binary search for FWER is necessary
-	binary_search <- (! is.null(inclusions)) & (error == 'fwer') & (search_method == 'binary')
+	binary_search <- (! is.null(samples)) & (error == 'fwer') & (search_method == 'binary')
 
 	# Assemble variables and constraints
 	x <- CVXR::Variable(ngroups)
@@ -152,7 +162,7 @@ BLiP <- function(
 		)
 		selections <- as.numeric(result$getValue(x))
 	} else {
-		N <- dim(inclusions)[1]
+		N <- dim(samples)[1]
 		# min val not controlling FWER
 		v_upper <- q * nrel + 1
 		# max val controlling FWER
@@ -165,16 +175,16 @@ BLiP <- function(
 			result <- CVXR::solve(
 				problem, solver=solver, warm_start=TRUE, verbose=verbose, logLevel=logLevel
 			)
-			# TODO more clever than this for FWER
+			# TODO could be more clever than this for FWER
 			selections <- round(as.numeric(result$getValue(x)))
 			# Calculate FWER for these selections
 			false_disc <- rep(0, N)
 			for (gj in which(selections > BINARY_TOL)) {
 				group <- cand_groups[[gj]]$group
 				if (length(group) == 1) {
-					false_disc <- false_disc | inclusions[,group] == 0
+					false_disc <- false_disc | samples[,group] == 0
 				} else {
-					false_disc <- false_disc | apply(inclusions[,group] == 0, 1, all)
+					false_disc <- false_disc | apply(samples[,group] == 0, 1, all)
 				}
 			}
 			fwer <- mean(false_disc)
@@ -197,7 +207,7 @@ BLiP <- function(
 	# Save information
 	for (gj in 1:ngroups) {
 		cand_groups[[gj]]$sprob <- selections[gj]
-		cand_groups[[gj]]$weight <- weights[gj]
+		cand_groups[[gj]]$weight <- orig_weights[gj]
 	}
 	if (error == 'fdr') {
 		v_opt <- as.numeric(result$getValue(v_var))
@@ -208,27 +218,24 @@ BLiP <- function(
 	return(binarize_selections(
 		cand_groups=cand_groups,
 		q=q,
-		v_opt=v_opt,
 		error=error,
 		deterministic=deterministic
 	))
 }
 
-#' Have to decide if this is internal or exported
 binarize_selections <- function(
 	cand_groups,
 	q,
-	v_opt,
 	error,
 	deterministic,
 	tol=1e-3,
+	nsample=10,
 	verbose=F
 ) {
 	output <- list()
-	nontriv_cand_groups <- list() # nonintegers
+	nontriv_cand_groups <- list() # non-integer solutions
 
-	# prune options with zero selection prob, include options
-	# with selection probability of 1
+	# Account for integer solutions
 	for (cg in cand_groups) {
 		if (cg$sprob < tol) {
 			next
@@ -239,7 +246,7 @@ binarize_selections <- function(
 		}
 	}
 
-	# The easy cases
+	# The easy cases: 0 or 1 non-integer values
 	ngroups <- length(nontriv_cand_groups)
 	if (ngroups == 0) { return(output) }
 	if (ngroups == 1) {
@@ -272,43 +279,90 @@ binarize_selections <- function(
 			x <= 1,
 			t(A) %*% x <= rep(1, nrel)
 		)
-		# Helpers for all but local FDR
 		ndisc_output <- length(output)
 		v_output <- ifelse(
-			ndisc_output == 0,
-			0,
-			sum(sapply(output, function(x) x$pep))
+		  ndisc_output == 0,
+		  0,
+		  sum(sapply(output, function(x) x$pep))
 		)
+		# pfer / fwer specific constraints
 		if (error %in% c("pfer", "fwer")) {
+		  if (error == 'pfer') {
+        v_opt = q
+      } else {
+        v_opt = sum(sapply(cand_groups, function(x) {x$pep * x$sprob}))
+      }
 			v_new <- v_opt - v_output
 			constraints <- c(constraints, list(sum(x * peps) <= v_new))
 		}
+		# No backtracking required for PFER, FWER, or local FDR
+		logLevel = ifelse(verbose, 1, 0)
+		if (error %in% c("pfer", "fwer", "local_fdr")) {
+		  problem <- CVXR::Problem(objective=objective, constraints=constraints)
+		  # We use CBC by default instead of GLPK:
+		  # See https://github.com/cvxpy/cvxpy/issues/1112
+		  if ('CBC' %in% CVXR::installed_solvers()) {
+		    result <- CVXR::solve(
+		      problem, solver='CBC', verbose=verbose, logLevel=logLevel
+		    )
+		  } else {
+		    result <- CVXR::solve(problem, verbose=verbose)
+		  }
+		}
 		if (error == 'fdr') {
-			v_var <- CVXR::Variable(pos=TRUE)
-			ndisc_output <- length(output)
-			constraints <- c(constraints, list(
-				sum(x * peps) <= v_var,
-				sum(x) >= (v_var + v_output) / q - ndisc_output,
-				v_var >= 0
-			))
+		  # Sort output in order of peps
+		  output <- output[order(sapply(output, function(x) {x$pep}))]
+		  # Iteratively try to solve problem and then backtrack if infeasible
+		  # (backtracking is extremely rare)
+		  while (length(output) >= 0) {
+		    v_var <- CVXR::Variable(pos=TRUE)
+		    constraints_fdr <- c(constraints, list(
+		      sum(x * peps) <= v_var,
+		      sum(x) >= (v_var + v_output) / q - ndisc_output
+		    ))
+		    problem <- CVXR::Problem(objective=objective, constraints=constraints_fdr)
+		    # Try to solve this problem with the default solver. This can fail in
+		    # small problem settings, in which case we try CBC if it is available.
+		    result <- tryCatch(
+		      {
+		        result <- CVXR::solve(
+		          problem, solver='GLPK', verbose=verbose, logLevel=logLevel
+		        )
+		      },
+		      error=function(cond) {
+		        if ('CBC' %in% CVXR::installed_solvers()) {
+  		        return(CVXR::solve(
+  		          problem, solver='CBC', verbose=verbose, logLevel=logLevel
+  		        ))
+		        } else {
+		          stop(cond)
+		        }
+		      }
+		    )
+		    # Break if the solution is feasible, else backtrack.
+		    if (result$status != "infeasible") {
+		      break
+		    } else {
+		      # This should never be triggered (it is mathematically impossible)
+		      if (length(output) == 0) {
+		        warning("Backtracking for FDR control failed. Try installing more MILP solvers or setting deterministic=False.")
+		        output <- c()
+		        break
+		      }
+		      v_output <- v_output - output[[length(output)]]$pep
+		      ndisc_output <- ndisc_output - 1
+		      if (length(output) == 1) {
+		        output <- c()
+		      } else {
+		        output <- output[1:length(output)-1]
+		      }
+		    }
+		  }
 		}
-		# Solve and return output
-		# Note GLPK is good in general, but it has known bugs in
-		# small problems like this one, so we use CBC by default.
-		# See https://github.com/cvxpy/cvxpy/issues/1112
-		problem <- CVXR::Problem(objective=objective, constraints=constraints)
-		if ('CBC' %in% CVXR::installed_solvers()) {
-			logLevel = ifelse(verbose, 1, 0)
-			result <- CVXR::solve(
-				problem, solver='CBC', verbose=verbose, logLevel=logLevel
-			)
-		} else {
-			result <- CVXR::solve(problem, verbose=verbose)
-		}
-
+		# Add new solutions to output
 		binarized_probs <- as.numeric(result$getValue(x))
-		output <- c(output, nontriv_cand_groups[binarized_probs > 1 - tol])
-
+		to_add <- nontriv_cand_groups[binarized_probs > 1 - tol]
+		if (is.null(output)) { output <- to_add } else {output <- c(output, to_add)}
 	# Method 2: sampling
 	} else {
 		# Add selection probs to A
