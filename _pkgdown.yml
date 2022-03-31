@@ -1,0 +1,18 @@
+navbar:
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "Vignettes"
+      href: articles/index.html
+    - text: "API Reference"
+      href: reference/index.html
+  right:
+    - text: "blipr source"
+      href: https://github.com/amspector100/blipr
+    - text: "pyblip source"
+      href: https://github.com/amspector100/pyblip
+    - text: "BLiP paper"
+      href: https://www.google.com/search?q=blip
+
+template:
+  bootstrap: 5

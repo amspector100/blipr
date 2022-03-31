@@ -117,6 +117,7 @@ sequential_groups <- function(
 }
 
 #' Eliminate cand_groups with pep < max_pep
+#' @keywords internal
 prefilter <- function(cand_groups, max_pep) {
   return(
     cand_groups[sapply(cand_groups, function(x) x$pep < max_pep)]
@@ -126,6 +127,8 @@ prefilter <- function(cand_groups, max_pep) {
 #' After prefiltering groups, some features/locations
 #' may not appear in any candidate groups. When this happens,
 #' this function reindexes the locations to improve efficiency.
+#'
+#' @keywords internal
 elim_redundant_features <- function(cand_groups) {
   # Step 1: find relevant features
   active_features <- Reduce(
@@ -148,6 +151,10 @@ elim_redundant_features <- function(cand_groups) {
 }
 
 #' Creates groups based on dist_matrix using hierarchical clustering
+#'
+#' @param dist_matrix A distance matrix object
+#'
+#' @keywords internal
 dist_matrix_to_groups <- function(dist_matrix) {
   groups <- list()
   for (method in c('single', 'average', 'complete')) {
@@ -208,7 +215,7 @@ hierarchical_groups <- function(
       # Ensure standard deviation is not zero for any cols
       nvals <- apply(samples, 2, function(x) length(unique(x)))
       if (any(nvals <= 1)) {
-        precorr <- rbind(rep(1, N), rep(0, N), samples)
+        precorr <- rbind(rep(1, p), rep(0, p), samples)
       } else {
         precorr <- samples
       }

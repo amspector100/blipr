@@ -2,8 +2,9 @@
 % Please edit documentation in R/blip.R
 \name{BLiP}
 \alias{BLiP}
-\title{Runs a Bayesian Linear Program (BliP) for resolution-adaptive signal
-detection, e.g. for resolution-adaptive variable selection.}
+\title{Given samples from a posterior or a list of candidate groups, BLiP performs
+resolution-adaptive signal detection to maximizepower while controlling
+(e.g.) the FDR.}
 \usage{
 BLiP(
   samples = NULL,
@@ -17,8 +18,7 @@ BLiP(
   perturb = T,
   max_iters = 100,
   search_method = "binary",
-  solver = NULL,
-  ...
+  solver = NULL
 )
 }
 \arguments{
@@ -30,7 +30,8 @@ value indicates the presence of a signal.}
 and a "pep" attribute, corresponding to a posterior error probability.}
 
 \item{weight_fn}{How to weight discoveries. Can be one of 'inverse_size'
-or 'log_inverse_size'.}
+or 'log_inverse_size' or a function which takes a candidate group as an input
+and returns a weight.}
 
 \item{error}{Bayesian error rate to control: one of "fwer", "pfer", "fdr", "local_fdr".}
 
@@ -38,8 +39,7 @@ or 'log_inverse_size'.}
 
 \item{max_pep}{Never select any group with a pep greater than max_pep.}
 
-\item{deterministic}{Whether or not BLiP should return a deterministic solution.
-Randomized solutions will have (very slightly) more power. Defaults to TRUE.}
+\item{deterministic}{Whether or not BLiP should return a deterministic solution.}
 
 \item{verbose}{If TRUE, gives occasional progress reports.}
 
@@ -55,15 +55,30 @@ the LP. Either 'binary' (defalt) or 'none'.}
 or ECOS (in that order), depending on whether they are installed.}
 }
 \value{
-An object with a "selections" attribute, a subsequence of pep_list
-which maximizes the utility while controlling a Bayesian error rate
-and ensuring all selected groups are disjoint.
+A list of candidate groups, which asserts that each group contains
+a signal.
 }
 \description{
-Runs a Bayesian Linear Program (BliP) for resolution-adaptive signal
-detection, e.g. for resolution-adaptive variable selection.
+Given samples from a posterior or a list of candidate groups, BLiP performs
+resolution-adaptive signal detection to maximizepower while controlling
+(e.g.) the FDR.
 }
 \examples{
-cand_groups <- list(list(group=c(1), pep=0.1), list(group=c(2), pep=0.5), list(group=c(1,2), pep=0.01))
+# Example 1: sparse linear regression
+n <- 100; p <- 200
+data <- blipr::generate_regression_data(n=n, p=p)
+# sample from the posterior, e.g., using NPrior
+nprior <- NPrior::NPrior_run(
+  X=data$X, y=data$y, N=5000, prior='SpSL-G'
+)
+# run blip on posterior samples
+detections <- blipr::BLiP(samples=t(nprior$ThetaSamples), q=0.1, error='fdr')
+
+# Example 2: Running BLiP directly on candidate groups
+cand_groups <- list(
+  list(group=c(1), pep=0.1),
+  list(group=c(2), pep=0.5),
+  list(group=c(1,2), pep=0.01)
+ )
 detections <- blipr::BLiP(cand_groups=cand_groups, q=0.1, error='fdr')
 }

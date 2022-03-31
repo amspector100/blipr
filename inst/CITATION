@@ -1,0 +1,13 @@
+citHeader("To cite blipr in publications, please use:")
+
+citEntry(entry = "Article",
+    title = paste("Controlled Discovery and Localization",
+                  "of Signals via Bayesian Linear Programming"),
+    author = c("Asher Spector", "Lucas Janson"),
+    journal = "arXiv",
+    year = "2022",
+    textVersion = paste("Asher Spector and Lucas Janson (2022).",
+                        "Controlled Discovery and Localization",
+                        "of Signals via Bayesian Linear Programming"
+                        )
+)
