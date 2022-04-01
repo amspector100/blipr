@@ -176,7 +176,7 @@ dist_matrix_to_groups <- function(dist_matrix) {
 }
 
 #' Creates hierarchically structured candidate groups
-#' based on dist_matrix.
+#' based on a distance matrix.
 #' @param samples (N,p)-shaped array of posterior samples
 #' where a nonzero value indicates the presence of a signal.
 #' @param dist_matrix A distance matrix corresponding to
@@ -252,7 +252,7 @@ hierarchical_groups <- function(
   return(cand_groups)
 }
 
-#' Calculates groups from SuSiE
+#' Creates candidate groups based on a SuSiE model
 #'@param alphas An L x p matrix of alphas from a SuSiE object.
 #'@param X the N x p design matrix. If not NULL, will also add
 #'hierarchical groups based on a correlation cluster of X.

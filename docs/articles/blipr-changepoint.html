@@ -57,7 +57,7 @@
   <a class="external-link nav-link" href="https://github.com/amspector100/pyblip">pyblip source</a>
 </li>
 <li class="nav-item">
-  <a class="external-link nav-link" href="https://www.google.com/search?q=blip">BLiP paper</a>
+  <a class="external-link nav-link" href="https://arxiv.org/abs/2203.17208">BLiP paper (arXiv)</a>
 </li>
       </ul>
 </div>
@@ -80,7 +80,7 @@
     
 <p>This vignette illustrates how to use <code>blipr</code> to perform resolution-adaptive change-point detection.</p>
 <div class="section level2">
-<h2 id="synthetic-data">Synthetic data<a class="anchor" aria-label="anchor" href="#synthetic-data"></a>
+<h2 id="problem-setting">Problem setting<a class="anchor" aria-label="anchor" href="#problem-setting"></a>
 </h2>
 <p>Given time series data <span class="math inline">\((Y_1, \dots, Y_n)\)</span>, suppose we are interested in looking for “change-points”, or times where the stochastic process changes. Often, we can tell that a process has changed, but we cannot discern exactly where it has changed because each observation <span class="math inline">\(\{Y_i\}\)</span> is noisy. The following synthetic dataset gives one example of this:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -113,10 +113,14 @@
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y<span class="op">=</span><span class="va">Y</span>, color<span class="op">=</span><span class="st">'Y'</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y<span class="op">=</span><span class="va">mu</span>, color<span class="op">=</span><span class="st">'E[Y]'</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>values<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Y"</span><span class="op">=</span><span class="st">'blue'</span>, <span class="st">'E[Y]'</span><span class="op">=</span><span class="st">'red'</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="blipr-changepoint_files/figure-html/setup-1.png" width="700"></p>
+<p><img src="blipr-changepoint_files/figure-html/data-1.png" width="700"></p>
+</div>
+<div class="section level2">
+<h2 id="applying-blip">Applying BLiP<a class="anchor" aria-label="anchor" href="#applying-blip"></a>
+</h2>
 <p>To detect regions where the true mean of <span class="math inline">\(Y\)</span> has changed, we first use the <code>bcp</code> package to fit a Bayesian change-point detection model. Then, we can apply BLiP directly on top of the posterior samples.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Fit Bayesian change point model, running 10 chains of 10K samples</span>
+<code class="sourceCode R"><span class="co"># Fit Bayesian change point model, running 10 chains of 2K samples each</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">bcp</span><span class="op">)</span>
 <span class="co">#&gt; Loading required package: grid</span>
 <span class="va">post_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span>nrow<span class="op">=</span><span class="fl">0</span>, ncol<span class="op">=</span><span class="va">n</span><span class="op">)</span>

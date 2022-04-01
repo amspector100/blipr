@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 
 This vignette illustrates how to use ``blipr`` to perform resolution-adaptive change-point detection.
 
-## Synthetic data
+## Problem setting
 
 Given time series data $(Y_1, \dots, Y_n)$, suppose we are interested in looking for "change-points", or times where the stochastic process changes. Often, we can tell that a process has changed, but we cannot discern exactly where it has changed because each observation $\{Y_i\}$ is noisy. The following synthetic dataset gives one example of this:
 
@@ -45,10 +45,12 @@ ggplot(df, aes(x=Time)) +
   scale_color_manual(values=c("Y"='blue', 'E[Y]'='red'))
 ```
 
+## Applying BLiP
+
 To detect regions where the true mean of $Y$ has changed, we first use the ``bcp`` package to fit a Bayesian change-point detection model. Then, we can apply BLiP directly on top of the posterior samples.
 
 ```{r}
-# Fit Bayesian change point model, running 10 chains of 10K samples
+# Fit Bayesian change point model, running 10 chains of 2K samples each
 library(bcp)
 post_samples <- matrix(nrow=0, ncol=n)
 N <- 2000; burnin <- N/10; chains <- 10

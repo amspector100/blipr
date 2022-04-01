@@ -57,7 +57,7 @@
   <a class="external-link nav-link" href="https://github.com/amspector100/pyblip">pyblip source</a>
 </li>
 <li class="nav-item">
-  <a class="external-link nav-link" href="https://www.google.com/search?q=blip">BLiP paper</a>
+  <a class="external-link nav-link" href="https://arxiv.org/abs/2203.17208">BLiP paper (arXiv)</a>
 </li>
       </ul>
 </div>
@@ -90,7 +90,7 @@
 <p>Here, we apply BLiP to perform variable selection in a sparse linear regression. The first step is to generate synthetic data and fit a Bayesian model using, e.g., the <a href="https://github.com/rabbitinasubmarine/NPrior" class="external-link">NPrior package</a>.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Generate sparse linear regression data</span>
-<span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">100</span>; <span class="va">p</span> <span class="op">&lt;-</span> <span class="fl">200</span>
+<span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span>; <span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">100</span>; <span class="va">p</span> <span class="op">&lt;-</span> <span class="fl">200</span>
 <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">blipr</span><span class="fu">::</span><span class="fu"><a href="reference/generate_regression_data.html">generate_regression_data</a></span><span class="op">(</span>n<span class="op">=</span><span class="va">n</span>, p<span class="op">=</span><span class="va">p</span><span class="op">)</span>
 
 <span class="co"># Fit a Bayesian spike-and-slab model</span>
@@ -111,7 +111,7 @@
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<p>Documentation and tutorials are available at <a href="amspector100.github.io/blipr">amspector100.github.io/blipr</a>.</p>
+<p>Documentation and tutorials are available at <a href="https://amspector100.github.io/blipr" class="external-link">amspector100.github.io/blipr</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="reference">Reference<a class="anchor" aria-label="anchor" href="#reference"></a>
@@ -120,7 +120,8 @@
 <pre><code>@article{AS-LJ:2022,
   title={Controlled Discovery and Localization of Signals via Bayesian Linear Programming},
   author={Spector, Asher and Janson, Lucas},
-  journal={arxiv},
+  journal={arXiv preprint arXiv:2203.17208},
+  url={https://arxiv.org/abs/2203.17208},
   year={2022}
 }</code></pre>
 </div>

@@ -152,3 +152,4 @@ venv.bak/
 .Rproj.user
 #docs
 #inst/doc
+inst/doc

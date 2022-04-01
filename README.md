@@ -23,7 +23,7 @@ Here, we apply BLiP to perform variable selection in a sparse linear regression.
 
 ```R
 # Generate sparse linear regression data
-n <- 100; p <- 200
+set.seed(123); n <- 100; p <- 200
 data <- blipr::generate_regression_data(n=n, p=p)
 
 # Fit a Bayesian spike-and-slab model
@@ -44,7 +44,7 @@ for (j in 1:length(detections)) {
 
 ## Documentation
 
-Documentation and tutorials are available at [amspector100.github.io/blipr](amspector100.github.io/blipr).
+Documentation and tutorials are available at [amspector100.github.io/blipr](https://amspector100.github.io/blipr).
 
 ## Reference
 
@@ -54,7 +54,8 @@ If you use ``blipr`` or BLiP in an academic publication, please consider citing 
 @article{AS-LJ:2022,
   title={Controlled Discovery and Localization of Signals via Bayesian Linear Programming},
   author={Spector, Asher and Janson, Lucas},
-  journal={arxiv},
+  journal={arXiv preprint arXiv:2203.17208},
+  url={https://arxiv.org/abs/2203.17208},
   year={2022}
 }
 ```

@@ -11,7 +11,7 @@ ERROR_OPTIONS <- c("fdr", "local_fdr", "fwer", "pfer")
 WEIGHT_FN_STRS <- c("inverse_size", "log_inverse_size")
 
 #' Given samples from a posterior or a list of candidate groups, BLiP performs
-#' resolution-adaptive signal detection to maximizepower while controlling
+#' resolution-adaptive signal detection to maximize power while controlling
 #' (e.g.) the FDR.
 #' @param samples (N,p)-shaped matrix of posterior samples where a nonzero
 #' value indicates the presence of a signal.
@@ -38,7 +38,7 @@ WEIGHT_FN_STRS <- c("inverse_size", "log_inverse_size")
 #'
 #' @examples
 #' # Example 1: sparse linear regression
-#' n <- 100; p <- 200
+#' set.seed(123); n <- 100; p <- 200
 #' data <- blipr::generate_regression_data(n=n, p=p)
 #' # sample from the posterior, e.g., using NPrior
 #' nprior <- NPrior::NPrior_run(

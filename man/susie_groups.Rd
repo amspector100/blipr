@@ -2,7 +2,7 @@
 % Please edit documentation in R/cand_groups.R
 \name{susie_groups}
 \alias{susie_groups}
-\title{Calculates groups from SuSiE}
+\title{Creates candidate groups based on a SuSiE model}
 \usage{
 susie_groups(alphas, X, q, max_pep = 1, max_size = 25, prenarrow = TRUE)
 }
@@ -23,5 +23,5 @@ hierarchical groups based on a correlation cluster of X.}
 as described in the paper. Defaults to TRUE.}
 }
 \description{
-Calculates groups from SuSiE
+Creates candidate groups based on a SuSiE model
 }

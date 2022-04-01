@@ -3,7 +3,7 @@
 \name{BLiP}
 \alias{BLiP}
 \title{Given samples from a posterior or a list of candidate groups, BLiP performs
-resolution-adaptive signal detection to maximizepower while controlling
+resolution-adaptive signal detection to maximize power while controlling
 (e.g.) the FDR.}
 \usage{
 BLiP(
@@ -60,12 +60,12 @@ a signal.
 }
 \description{
 Given samples from a posterior or a list of candidate groups, BLiP performs
-resolution-adaptive signal detection to maximizepower while controlling
+resolution-adaptive signal detection to maximize power while controlling
 (e.g.) the FDR.
 }
 \examples{
 # Example 1: sparse linear regression
-n <- 100; p <- 200
+set.seed(123); n <- 100; p <- 200
 data <- blipr::generate_regression_data(n=n, p=p)
 # sample from the posterior, e.g., using NPrior
 nprior <- NPrior::NPrior_run(

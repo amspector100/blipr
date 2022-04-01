@@ -3,7 +3,7 @@
 \name{hierarchical_groups}
 \alias{hierarchical_groups}
 \title{Creates hierarchically structured candidate groups
-based on dist_matrix.}
+based on a distance matrix.}
 \usage{
 hierarchical_groups(
   samples,
@@ -34,5 +34,5 @@ of variables to avoid duplication.}
 }
 \description{
 Creates hierarchically structured candidate groups
-based on dist_matrix.
+based on a distance matrix.
 }

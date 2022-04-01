@@ -11,8 +11,8 @@ navbar:
       href: https://github.com/amspector100/blipr
     - text: "pyblip source"
       href: https://github.com/amspector100/pyblip
-    - text: "BLiP paper"
-      href: https://www.google.com/search?q=blip
+    - text: "BLiP paper (arXiv)"
+      href: https://arxiv.org/abs/2203.17208
 
 template:
   bootstrap: 5
