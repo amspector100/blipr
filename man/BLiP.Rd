@@ -59,9 +59,8 @@ A list of candidate groups, which asserts that each group contains
 a signal.
 }
 \description{
-Given samples from a posterior or a list of candidate groups, BLiP performs
-resolution-adaptive signal detection to maximize power while controlling
-(e.g.) the FDR.
+Note: when working with image data or a continuous set
+of locations, consider using BLiP_cts.
 }
 \examples{
 # Example 1: sparse linear regression

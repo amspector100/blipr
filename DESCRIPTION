@@ -1,6 +1,6 @@
 Package: blipr
 Title: A Bayesian Linear Program for resolution-adaptive signal detection
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R: 
     person(given = "Asher",
            family = "Spector",
@@ -17,12 +17,22 @@ Imports:
   CVXR,
   rcbc,
   methods,
-  stats
+  stats,
+  abind
 Suggests: 
     testthat (>= 3.0.0),
+    igraph,
+    susieR,
+    bcp,
     NPrior,
     Rglpk,
     knitr,
-    rmarkdown
+    rmarkdown,
+    BoomSpikeSlab,
+    pheatmap,
+    tidyverse,
+    ggforce
 Config/testthat/edition: 3
 VignetteBuilder: knitr
+Depends: 
+    R (>= 2.10)

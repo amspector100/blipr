@@ -28,8 +28,7 @@ set.seed(123); n <- 100; p <- 200
 data <- blipr::generate_regression_data(n=n, p=p)
 
 # Show heatmap of correlation matrix
-library(RColorBrewer)
-colormap <-colorRampPalette(c("red","white","blue"))(100)
+colormap <- colorRampPalette(c("red","white","blue"))(100)
 pheatmap::pheatmap(
   cor(data$X),
   breaks=c(0:100 - 50)/50,

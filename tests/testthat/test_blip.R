@@ -182,14 +182,12 @@ test_that('binarize_selections and BLiP deterministically control the error rate
     for (j in 1:length(all_cand_groups)) {
       q <- 0.2 * runif(1)
       # run deterministic BLiP
-      print(all_cand_groups[[j]])
       detections <- BLiP(
         cand_groups=all_cand_groups[[j]], error=error, q=q, deterministic=T
       )
       check_disjoint(detections)
       check_error(detections, error=error, q=q, info=cg_input)
       # Run non-deterministic version
-      print(all_cand_groups[[j]])
       for (r in reps) {
         detections <- BLiP(
           cand_groups=all_cand_groups[[j]], error=error, q=q, deterministic=F
@@ -217,11 +215,6 @@ test_that('binarize_selections and BLiP deterministically control the error rate
     )
     check_disjoint(signals)
     check_error(signals, error=error, q=q)
-    # if (error == 'pfer') {
-    #   check_lp_output(detections, cand_groups[c(2,3)])
-    # } else if (error == 'fdr') {
-    #   check_lp_output(detections, cand_groups[c(2,4)])
-    # }
     # Repeat many times for randomized solution
     for (j in 1:reps) {
       signals <- binarize_selections(

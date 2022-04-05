@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">blipr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,6 +69,17 @@ resolution-adaptive signal detection to maximize power while controlling
 (e.g.) the FDR.</dd>
       </dl><dl><dt>
           
+          <code><a href="BLiP_cts.html">BLiP_cts()</a></code> 
+        </dt>
+        <dd>BLiP when the set of locations is continuous, e.g., when
+working with image data.</dd>
+      </dl><dl><dt>
+          
+          <code><a href="edge_clique_cover.html">edge_clique_cover()</a></code> 
+        </dt>
+        <dd>Finds an edge clique cover of a graph G.</dd>
+      </dl><dl><dt>
+          
           <code><a href="generate_changepoint_data.html">generate_changepoint_data()</a></code> 
         </dt>
         <dd>Generate synthetic change point data.</dd>
@@ -85,9 +96,28 @@ resolution-adaptive signal detection to maximize power while controlling
 based on a distance matrix.</dd>
       </dl><dl><dt>
           
+          <code><a href="lattice_peps.html">lattice_peps()</a></code> 
+        </dt>
+        <dd>Computes contiguous candidate groups on a lattice R^d</dd>
+      </dl><dl><dt>
+          
+          <code><a href="lattice_peps_to_cand_groups.html">lattice_peps_to_cand_groups()</a></code> 
+        </dt>
+        <dd>Turns the output of the lattice_peps function into
+a list of list of candidate groups. Each sub-list
+corresponds to a list of completely disconnected
+candidate groups which can be fed to BLiP separately
+(this saves computation).</dd>
+      </dl><dl><dt>
+          
           <code><a href="sequential_groups.html">sequential_groups()</a></code> 
         </dt>
         <dd>Calculates all sequential candidate groups below max_size.</dd>
+      </dl><dl><dt>
+          
+          <code><a href="starnet_sim_data.html">starnet_sim_data</a></code> 
+        </dt>
+        <dd>A simulated point-source detection image from Liu et. al (2021).</dd>
       </dl><dl><dt>
           
           <code><a href="susie_groups.html">susie_groups()</a></code> 

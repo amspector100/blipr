@@ -48,7 +48,7 @@ Documentation and tutorials are available at [amspector100.github.io/blipr](http
 
 ## Development notes
 
-``BLiP`` can also be used to localize signals in continuous spaces, for example in astronomical point source detection, as illustrated in [Spector and Janson (2022)](https://arxiv.org/abs/2203.17208). We expect a stable release of functionality for the continuous case to be available on **Monday, April 4, 2022**. In the meantime, this functionality is already available in [pyblip](https://amspector100.github.io/pyblip/usage.html#4.-Point-source-detection), the Python equivalent of ``blipr``.
+Currently, there are utility two functions (``lattice_peps`` and ``hierarchical_groups``) which are slower than the version in the python pacakge, [pyblip](https://github.com/amspector100/pyblip). Of course, these are just helper functions and blipr's core functionality is quite fast. Nonetheless, we hope to substantially speed up the implementation of these functions in the near future, which will speed up the ``BLiP_cts`` wrapper.
 
 ## Reference
 

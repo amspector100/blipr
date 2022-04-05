@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="index.html">blipr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -116,7 +116,7 @@
 <div class="section level2">
 <h2 id="development-notes">Development notes<a class="anchor" aria-label="anchor" href="#development-notes"></a>
 </h2>
-<p><code>BLiP</code> can also be used to localize signals in continuous spaces, for example in astronomical point source detection, as illustrated in <a href="https://arxiv.org/abs/2203.17208" class="external-link">Spector and Janson (2022)</a>. We expect a stable release of functionality for the continuous case to be available on <strong>Monday, April 4, 2022</strong>. In the meantime, this functionality is already available in <a href="https://amspector100.github.io/pyblip/usage.html#4.-Point-source-detection" class="external-link">pyblip</a>, the Python equivalent of <code>blipr</code>.</p>
+<p>Currently, there are utility two functions (<code>lattice_peps</code> and <code>hierarchical_groups</code>) which are slower than the version in the python pacakge, <a href="https://github.com/amspector100/pyblip" class="external-link">pyblip</a>. Of course, these are just helper functions and blipr’s core functionality is quite fast. Nonetheless, we hope to substantially speed up the implementation of these functions in the near future, which will speed up the <code>BLiP_cts</code> wrapper.</p>
 </div>
 <div class="section level2">
 <h2 id="reference">Reference<a class="anchor" aria-label="anchor" href="#reference"></a>
