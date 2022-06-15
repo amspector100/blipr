@@ -1,6 +1,6 @@
 Package: blipr
 Title: A Bayesian Linear Program for resolution-adaptive signal detection
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: 
     person(given = "Asher",
            family = "Spector",
