@@ -41,15 +41,20 @@ pheatmap::pheatmap(
 
 ## Example 1: Linear spike-and-slab model + BLiP
 
-We can run BLiP in two steps. First, we fit a Bayesian model to $(X, Y)$---in this case, we use a spike-and-slab model for sparse linear regression. Second, we run BLiP directly on top of the posterior samples from the Bayesian model, as shown below.
+We can run BLiP in two steps. First, we fit a Bayesian model to $(X, Y)$---in this case, we use a spike-and-slab model for quasi-sparse linear regression using the ``ScaleSpikeSlab`` package. (Note there are many other possible packages for sparse or nearly sparse Bayesian linear regression, including [NPrior](https://github.com/rabbitinasubmarine/NPrior) and ``BoomSpikeSlab``.) Second, we run BLiP directly on top of the posterior samples from the Bayesian model, as shown below.
 
 ```{r, results='hide'}
-# Step 1: fit a spike-and-slab model using NPrior. This takes ~30 seconds.
-# devtools::install_github("rabbitinasubmarine/NPrior")
-nprior <- NPrior::NPrior_run(
-   X=data$X, y=data$y, N=5000, prior='SpSL-G', verbose=0
+# Step 1: fit a spike-and-slab model using ScaleSpikeSlab
+s3lm <- ScaleSpikeSlab::spike_slab_linear(
+  chain_length=5000, 
+  X=data$X, 
+  y=data$y,
+  tau0=0.01, 
+  tau1=1, 
+  q=10/p
 )
-post_samples <- t(nprior$ThetaSamples)
+
+post_samples <- s3lm$z
 ```
 
 Second, we apply BLiP to ``post_samples``. Since this is a synthetic dataset, we can check whether the detections from BLiP are correct.
@@ -132,10 +137,18 @@ ystar <- pdata$y > 0
 chains <- 10; niter <- 2000
 post_samples <- matrix(0, 0, p)
 for (c in 1:chains) {
-  probit_model <- BoomSpikeSlab::probit.spike(
-    ystar ~ pdata$X - 1, niter=niter, ping=-1, seed=123, expected.model.size=10
+  # Option 1: use ScaleSpikeSlab backend
+  probit_model <- ScaleSpikeSlab::spike_slab_probit(
+    chain_length=niter, X=pdata$X, y=ystar, tau0=0.01, tau1=1.0, q=10/p,
   )
-  post_samples <- rbind(post_samples, probit_model$beta)
+  post_samples <- rbind(post_samples, probit_model$z)
+  
+  # Option 2: use BoomSpikeSlab backend (uncomment this to do so,
+  # yields similar results)
+  # probit_model <- BoomSpikeSlab::probit.spike(
+  #   ystar ~ pdata$X - 1, niter=niter, ping=-1, seed=123, expected.model.size=10
+  # )
+  # post_samples <- rbind(post_samples, probit_model$beta)
 }
 ```
 
@@ -145,7 +158,7 @@ detections <- blipr::BLiP(samples=post_samples, q=0.1, error='fdr')
 check_correctness(detections, pdata$beta)
 ```
 
-## Discussion: Using hierarchical priors to avoid misspecification
+## Discussion: Using hierarchical priors and multiple runs to avoid misspecification
 
 BLiP can wrap on top of nearly any Bayesian model, and in practice, it is fairly robust to some degree of model misspecification (see the paper for simulations and a discussion of this issue). That said, if the underlying model is extremely poorly specified, BLiP will violate FDR control. For example, in the following problem, the prior indicates that $50\%$ of the variables are signal variables, whereas in truth only $5\%$ of the variables are signal variables.
 

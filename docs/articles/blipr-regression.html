@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">blipr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,7 +67,7 @@
 </nav><div class="container template-article">
 
 <div class="row">
-  <main id="main"><div class="page-header">
+  <main id="main" class="col-md-9"><div class="page-header">
       <img src="" class="logo" alt=""><h1>BLiP for controlled variable selection</h1>
             
       
@@ -92,8 +92,7 @@
 <span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">blipr</span><span class="fu">::</span><span class="fu"><a href="../reference/generate_regression_data.html">generate_regression_data</a></span><span class="op">(</span>n<span class="op">=</span><span class="va">n</span>, p<span class="op">=</span><span class="va">p</span><span class="op">)</span>
 
 <span class="co"># Show heatmap of correlation matrix</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">RColorBrewer</span><span class="op">)</span>
-<span class="va">colormap</span> <span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/r/grDevices/colorRamp.html" class="external-link">colorRampPalette</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"red"</span>,<span class="st">"white"</span>,<span class="st">"blue"</span><span class="op">)</span><span class="op">)</span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>
+<span class="va">colormap</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/grDevices/colorRamp.html" class="external-link">colorRampPalette</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"red"</span>,<span class="st">"white"</span>,<span class="st">"blue"</span><span class="op">)</span><span class="op">)</span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>
 <span class="fu">pheatmap</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span>
   <span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">X</span><span class="op">)</span>,
   breaks<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">100</span> <span class="op">-</span> <span class="fl">50</span><span class="op">)</span><span class="op">/</span><span class="fl">50</span>,
@@ -107,14 +106,19 @@
 <div class="section level2">
 <h2 id="example-1-linear-spike-and-slab-model-blip">Example 1: Linear spike-and-slab model + BLiP<a class="anchor" aria-label="anchor" href="#example-1-linear-spike-and-slab-model-blip"></a>
 </h2>
-<p>We can run BLiP in two steps. First, we fit a Bayesian model to <span class="math inline">\((X, Y)\)</span>—in this case, we use a spike-and-slab model for sparse linear regression. Second, we run BLiP directly on top of the posterior samples from the Bayesian model, as shown below.</p>
+<p>We can run BLiP in two steps. First, we fit a Bayesian model to <span class="math inline">\((X, Y)\)</span>—in this case, we use a spike-and-slab model for quasi-sparse linear regression using the <code>ScaleSpikeSlab</code> package. (Note there are many other possible packages for sparse or nearly sparse Bayesian linear regression, including <a href="https://github.com/rabbitinasubmarine/NPrior" class="external-link">NPrior</a> and <code>BoomSpikeSlab</code>.) Second, we run BLiP directly on top of the posterior samples from the Bayesian model, as shown below.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Step 1: fit a spike-and-slab model using NPrior. This takes ~30 seconds.</span>
-<span class="co"># devtools::install_github("rabbitinasubmarine/NPrior")</span>
-<span class="va">nprior</span> <span class="op">&lt;-</span> <span class="fu">NPrior</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/NPrior/man/NPrior_run.html" class="external-link">NPrior_run</a></span><span class="op">(</span>
-   X<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">X</span>, y<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">y</span>, N<span class="op">=</span><span class="fl">5000</span>, prior<span class="op">=</span><span class="st">'SpSL-G'</span>, verbose<span class="op">=</span><span class="fl">0</span>
+<code class="sourceCode R"><span class="co"># Step 1: fit a spike-and-slab model using ScaleSpikeSlab</span>
+<span class="va">s3lm</span> <span class="op">&lt;-</span> <span class="fu">ScaleSpikeSlab</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/ScaleSpikeSlab/man/spike_slab_linear.html" class="external-link">spike_slab_linear</a></span><span class="op">(</span>
+  chain_length<span class="op">=</span><span class="fl">5000</span>, 
+  X<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">X</span>, 
+  y<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">y</span>,
+  tau0<span class="op">=</span><span class="fl">0.01</span>, 
+  tau1<span class="op">=</span><span class="fl">1</span>, 
+  q<span class="op">=</span><span class="fl">10</span><span class="op">/</span><span class="va">p</span>
 <span class="op">)</span>
-<span class="va">post_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">nprior</span><span class="op">$</span><span class="va">ThetaSamples</span><span class="op">)</span></code></pre></div>
+
+<span class="va">post_samples</span> <span class="op">&lt;-</span> <span class="va">s3lm</span><span class="op">$</span><span class="va">z</span></code></pre></div>
 <p>Second, we apply BLiP to <code>post_samples</code>. Since this is a synthetic dataset, we can check whether the detections from BLiP are correct.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Step 2: apply BLiP</span>
@@ -140,11 +144,10 @@
 <span class="fu">check_correctness</span><span class="op">(</span><span class="va">detections</span>, <span class="va">data</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span>
 <span class="co">#&gt; BLiP correctly detected a signal in {106}.</span>
 <span class="co">#&gt; BLiP correctly detected a signal in {136}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {193, 194}.</span>
+<span class="co">#&gt; BLiP correctly detected a signal in {141, 143, 144}.</span>
 <span class="co">#&gt; BLiP correctly detected a signal in {95, 96, 97, 98, 99, 100}.</span>
 <span class="co">#&gt; BLiP correctly detected a signal in {5}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {141}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {53, 54, 55, 56, 57}.</span></code></pre></div>
+<span class="co">#&gt; BLiP correctly detected a signal in {193, 194}.</span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example-2-susie-blip">Example 2: SuSiE + BLiP<a class="anchor" aria-label="anchor" href="#example-2-susie-blip"></a>
@@ -199,24 +202,32 @@
 <span class="va">chains</span> <span class="op">&lt;-</span> <span class="fl">10</span>; <span class="va">niter</span> <span class="op">&lt;-</span> <span class="fl">2000</span>
 <span class="va">post_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="va">p</span><span class="op">)</span>
 <span class="kw">for</span> <span class="op">(</span><span class="va">c</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">chains</span><span class="op">)</span> <span class="op">{</span>
-  <span class="va">probit_model</span> <span class="op">&lt;-</span> <span class="fu">BoomSpikeSlab</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BoomSpikeSlab/man/probit.spike.html" class="external-link">probit.spike</a></span><span class="op">(</span>
-    <span class="va">ystar</span> <span class="op">~</span> <span class="va">pdata</span><span class="op">$</span><span class="va">X</span> <span class="op">-</span> <span class="fl">1</span>, niter<span class="op">=</span><span class="va">niter</span>, ping<span class="op">=</span><span class="op">-</span><span class="fl">1</span>, seed<span class="op">=</span><span class="fl">123</span>, expected.model.size<span class="op">=</span><span class="fl">10</span>
+  <span class="co"># Option 1: use ScaleSpikeSlab backend</span>
+  <span class="va">probit_model</span> <span class="op">&lt;-</span> <span class="fu">ScaleSpikeSlab</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/ScaleSpikeSlab/man/spike_slab_probit.html" class="external-link">spike_slab_probit</a></span><span class="op">(</span>
+    chain_length<span class="op">=</span><span class="va">niter</span>, X<span class="op">=</span><span class="va">pdata</span><span class="op">$</span><span class="va">X</span>, y<span class="op">=</span><span class="va">ystar</span>, tau0<span class="op">=</span><span class="fl">0.01</span>, tau1<span class="op">=</span><span class="fl">1.0</span>, q<span class="op">=</span><span class="fl">10</span><span class="op">/</span><span class="va">p</span>,
   <span class="op">)</span>
-  <span class="va">post_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">post_samples</span>, <span class="va">probit_model</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span>
+  <span class="va">post_samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">post_samples</span>, <span class="va">probit_model</span><span class="op">$</span><span class="va">z</span><span class="op">)</span>
+  
+  <span class="co"># Option 2: use BoomSpikeSlab backend (uncomment this to do so,</span>
+  <span class="co"># yields similar results)</span>
+  <span class="co"># probit_model &lt;- BoomSpikeSlab::probit.spike(</span>
+  <span class="co">#   ystar ~ pdata$X - 1, niter=niter, ping=-1, seed=123, expected.model.size=10</span>
+  <span class="co"># )</span>
+  <span class="co"># post_samples &lt;- rbind(post_samples, probit_model$beta)</span>
 <span class="op">}</span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># Step 2: run BLiP on the posterior samples</span>
 <span class="va">detections</span> <span class="op">&lt;-</span> <span class="fu">blipr</span><span class="fu">::</span><span class="fu"><a href="../reference/BLiP.html">BLiP</a></span><span class="op">(</span>samples<span class="op">=</span><span class="va">post_samples</span>, q<span class="op">=</span><span class="fl">0.1</span>, error<span class="op">=</span><span class="st">'fdr'</span><span class="op">)</span>
 <span class="fu">check_correctness</span><span class="op">(</span><span class="va">detections</span>, <span class="va">pdata</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {181}.</span>
+<span class="co">#&gt; BLiP correctly detected a signal in {87, 88}.</span>
 <span class="co">#&gt; BLiP correctly detected a signal in {154, 155}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {109, 110}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {87}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {187}.</span>
-<span class="co">#&gt; BLiP incorrectly detected a signal in {7, 8}.</span></code></pre></div>
+<span class="co">#&gt; BLiP correctly detected a signal in {181, 182}.</span>
+<span class="co">#&gt; BLiP correctly detected a signal in {109, 110, 111}.</span>
+<span class="co">#&gt; BLiP correctly detected a signal in {185, 186, 187}.</span>
+<span class="co">#&gt; BLiP correctly detected a signal in {7, 8, 9, 10}.</span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="discussion-using-hierarchical-priors-to-avoid-misspecification">Discussion: Using hierarchical priors to avoid misspecification<a class="anchor" aria-label="anchor" href="#discussion-using-hierarchical-priors-to-avoid-misspecification"></a>
+<h2 id="discussion-using-hierarchical-priors-and-multiple-runs-to-avoid-misspecification">Discussion: Using hierarchical priors and multiple runs to avoid misspecification<a class="anchor" aria-label="anchor" href="#discussion-using-hierarchical-priors-and-multiple-runs-to-avoid-misspecification"></a>
 </h2>
 <p>BLiP can wrap on top of nearly any Bayesian model, and in practice, it is fairly robust to some degree of model misspecification (see the paper for simulations and a discussion of this issue). That said, if the underlying model is extremely poorly specified, BLiP will violate FDR control. For example, in the following problem, the prior indicates that <span class="math inline">\(50\%\)</span> of the variables are signal variables, whereas in truth only <span class="math inline">\(5\%\)</span> of the variables are signal variables.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -230,13 +241,14 @@
 <span class="co">#&gt; BLiP correctly detected a signal in {136}.</span>
 <span class="co">#&gt; BLiP correctly detected a signal in {5, 6}.</span>
 <span class="co">#&gt; BLiP correctly detected a signal in {95, 96, 97, 98, 99, 100}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {53, 54, 55, 56}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28}.</span>
-<span class="co">#&gt; BLiP incorrectly detected a signal in {60, 140}.</span>
-<span class="co">#&gt; BLiP incorrectly detected a signal in {111}.</span>
-<span class="co">#&gt; BLiP incorrectly detected a signal in {4, 78}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {193, 194}.</span>
-<span class="co">#&gt; BLiP correctly detected a signal in {141, 190}.</span></code></pre></div>
+<span class="co">#&gt; BLiP correctly detected a signal in {53, 54, 55, 56, 57}.</span>
+<span class="co">#&gt; BLiP correctly detected a signal in {12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28}.</span>
+<span class="co">#&gt; BLiP incorrectly detected a signal in {74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93}.</span>
+<span class="co">#&gt; BLiP incorrectly detected a signal in {59, 60, 94, 131}.</span>
+<span class="co">#&gt; BLiP correctly detected a signal in {141}.</span>
+<span class="co">#&gt; BLiP incorrectly detected a signal in {194}.</span>
+<span class="co">#&gt; BLiP incorrectly detected a signal in {140}.</span>
+<span class="co">#&gt; BLiP incorrectly detected a signal in {3, 111}.</span></code></pre></div>
 <p>As we can see, many of these detections are false positives due to the misspecified model. To avoid this situation, we recommend using <strong>hierarchical priors</strong> on unknown nuisance parameters like the sparsity level in regression problems with a conservative choice of hyperparameters. See <a href="https://arxiv.org/abs/2203.17208" class="external-link">Spector and Janson (2022)</a> for more discussion of this issue and a concrete suggestion for hierarchical priors in generalized linear models. When using MCMC algorithms, we also recommend <strong>running multiple MCMC chains</strong> with different initializations to protect against convergence issues As discussed in the paper, even when each individual MCMC chain fails to converge, often using multiple chains will overstate the uncertainty in the location of signals, leading to conservative but valid inference.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
@@ -252,7 +264,7 @@
 
 <div class="pkgdown-footer-right">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
     </footer>

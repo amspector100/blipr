@@ -17,20 +17,28 @@ You can install ``blipr`` from GitHub:
 remotes::install_github("amspector100/blipr")
 ```
 
+You may also need to install ``rcbc`` from GitHub as well:
+
+```R
+remotes::install_github("dirkschumacher/rcbc")
+```
+
+If ``rcbc`` installation fails, please see the [rcbc homepage](https://github.com/dirkschumacher/rcbc).
+
 ## Minimal example
 
-Here, we apply BLiP to perform variable selection in a sparse linear regression. The first step is to generate synthetic data and fit a Bayesian model using, e.g., the [NPrior package](https://github.com/rabbitinasubmarine/NPrior).
+Here, we apply BLiP to perform variable selection in a sparse linear regression. The first step is to generate synthetic data and fit a Bayesian model using, e.g., the ``ScaleSpikeSlab`` or [NPrior](https://github.com/rabbitinasubmarine/NPrior) packages.
 
 ```R
 # Generate sparse linear regression data
 set.seed(123); n <- 100; p <- 200
 data <- blipr::generate_regression_data(n=n, p=p)
 
-# Fit a Bayesian spike-and-slab model
-nprior <- NPrior::NPrior_run(
-   X=data$X, y=data$y, N=5000, prior='SpSL-G'
+# Fit a Bayesian spike-and-slab model using (e.g.) ScaleSpikeSlab
+s3lm <- ScaleSpikeSlab::spike_slab_linear(
+  chain_length=5000, X=data$X, y=data$y, tau0=0.01, tau1=1, q=10/p
 )
-post_samples <- t(nprior$ThetaSamples)
+post_samples <- s3lm$z
 
 # Run BLiP on the posterior samples
 detections <- blipr::BLiP(
@@ -38,7 +46,7 @@ detections <- blipr::BLiP(
 )
 for (j in 1:length(detections)) {
   group <- paste(detections[[j]]$group, collapse=', ')
-  cat("BLiP has detected a signal in ", group, ".\n", sep='')
+  cat("BLiP has detected a signal in {", group, "}.\n", sep='')
 }
 ```
 

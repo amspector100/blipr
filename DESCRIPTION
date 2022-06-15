@@ -22,6 +22,7 @@ Imports:
 Suggests: 
     testthat (>= 3.0.0),
     igraph,
+    ScaleSpikeSlab,
     susieR,
     bcp,
     NPrior,
